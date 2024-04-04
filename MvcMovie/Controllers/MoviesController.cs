@@ -7,22 +7,57 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MvcMovie.Data;
 using MvcMovie.Models;
+using MvcMovie.Models.ViewModels;
 
 namespace MvcMovie.Controllers
 {
     public class MoviesController : Controller
     {
         private readonly MvcMovieContext _context;
-
+        
         public MoviesController(MvcMovieContext context)
         {
             _context = context;
         }
 
         // GET: Movies
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string movieGenre, string searchString)
         {
-            return View(await _context.Movie.ToListAsync());
+            if (_context.Movie == null)
+            {
+                return Problem("Entity set 'MvcMovieContext.Movie'  is null.");
+            }
+
+            // Use LINQ to get list of genres.
+            IQueryable<string> genreQuery = from m in _context.Movie
+                orderby m.Genre
+                select m.Genre;
+            var movies = from m in _context.Movie
+                select m;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                movies = movies.Where(s => s.Title!.Contains(searchString));
+            }
+
+            if (!string.IsNullOrEmpty(movieGenre))
+            {
+                movies = movies.Where(x => x.Genre == movieGenre);
+            }
+
+            var movieGenreVM = new MovieGenreViewModel
+            {
+                Genres = new SelectList(await genreQuery.Distinct().ToListAsync()),
+                Movies = await movies.ToListAsync()
+            };
+
+            return View(movieGenreVM);
+        }
+
+        [HttpPost]
+        public string Index(string searchString, bool notUsed)
+        {
+            return "From [HttpPost]Index: filter on " + searchString;
         }
 
         // GET: Movies/Details/5
@@ -54,55 +89,80 @@ namespace MvcMovie.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,ReleaseDate,Genre,Price")] Movie movie)
+        public async Task<IActionResult> Create(CreateMovieViewModel movieViewModel)
         {
-            if (ModelState.IsValid)
+            var movie = new Movie
             {
-                _context.Add(movie);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(movie);
+                Title = movieViewModel.Title,
+                ReleaseDate = movieViewModel.ReleaseDate,
+                Genre = movieViewModel.Genre,
+                Price = movieViewModel.Price,
+                Rating = movieViewModel.Rating
+            };
+
+            _context.Add(movie);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Movies/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
+            // Retrieve movie from database
             var movie = await _context.Movie.FindAsync(id);
+
             if (movie == null)
             {
                 return NotFound();
             }
-            return View(movie);
+
+            // Map movie properties to EditMovieViewModel
+            var viewModel = new EditMovieViewModel
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                ReleaseDate = movie.ReleaseDate,
+                Genre = movie.Genre,
+                Price = movie.Price,
+                Rating = movie.Rating
+            };
+
+            return View(viewModel);
         }
 
         // POST: Movies/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ReleaseDate,Genre,Price")] Movie movie)
+        [HttpPost]
+        public async Task<IActionResult> Edit(EditMovieViewModel viewModel)
         {
-            if (id != movie.Id)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
+                var movie = await _context.Movie.FirstOrDefaultAsync(m => m.Id == viewModel.Id);
+                if (movie == null)
+                {
+                    return NotFound();
+                }
+
+                // Update movie properties with values from view model
+                movie.Title = viewModel.Title;
+                movie.ReleaseDate = viewModel.ReleaseDate;
+                movie.Genre = viewModel.Genre;
+                movie.Price = viewModel.Price;
+                movie.Rating = viewModel.Rating;
+
+                // Assuming you have additional properties in your domain model, you would update them here as well if needed
+
                 try
                 {
                     _context.Update(movie);
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!MovieExists(movie.Id))
+                    if (!MovieExists(viewModel.Id))
                     {
                         return NotFound();
                     }
@@ -111,10 +171,12 @@ namespace MvcMovie.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
             }
-            return View(movie);
+
+            // If ModelState is not valid, return the view with validation errors
+            return View(viewModel);
         }
+
 
         // GET: Movies/Delete/5
         public async Task<IActionResult> Delete(int? id)

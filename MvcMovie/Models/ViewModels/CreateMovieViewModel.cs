@@ -1,12 +1,10 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MvcMovie.Models;
+namespace MvcMovie.Models.ViewModels;
 
-public class Movie
+public class CreateMovieViewModel
 {
-    public int Id { get; set; }
     public string? Title { get; set; }
     
     [Display(Name = "Release Date")]

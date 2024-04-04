@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="MvcMovieContext-0572420c-66a1-4573-b9b6-3f6921ec419e@DESKTOP-KCT4PJT" uuid="e7d68ea8-8e7d-4111-a928-ee0a13d1c7aa">
+      <driver-ref>sqlserver.jb</driver-ref>
+      <synchronize>true</synchronize>
+      <configured-by-url>true</configured-by-url>
+      <jdbc-driver>com.jetbrains.jdbc.sqlserver.SqlServerDriver</jdbc-driver>
+      <jdbc-url>Server=DESKTOP-KCT4PJT\SQLEXPRESS;Database=MvcMovieContext-0572420c-66a1-4573-b9b6-3f6921ec419e;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+  </component>
+</project>
